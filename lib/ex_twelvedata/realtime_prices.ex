@@ -39,6 +39,31 @@ defmodule ExTwelvedata.RealtimePrices do
     WebSockex.send_frame(client, {:text, msg})
   end
 
+  @spec unsubscribe(pid, [String.t()]) :: {:error, any} | {:ok}
+  def unsubscribe(client, symbols) do
+    msg =
+      Jason.encode!(%{
+        "action" => "unsubscribe",
+        "params" => %{
+          "symbols" => Enum.join(symbols, ",")
+        }
+      })
+
+    Logger.debug("-> Unsubscribing from symbols: #{msg}")
+    WebSockex.send_frame(client, {:text, msg})
+  end
+
+  @spec reset(pid) :: {:error, any} | {:ok}
+  def reset(client) do
+    msg =
+      Jason.encode!(%{
+        "action" => "reset"
+      })
+
+    Logger.debug("-> Resetting...")
+    WebSockex.send_frame(client, {:text, msg})
+  end
+
   def handle_connect(conn, state) do
     Logger.info("<- Connected to Twelvedata")
     schedule_next_heartbeat()
@@ -85,6 +110,34 @@ defmodule ExTwelvedata.RealtimePrices do
       :ok
     else
       Logger.error("Subscribe failed: #{inspect(obj)}")
+      :close
+    end
+  end
+
+  defp process_message(
+         %{
+           "event" => "unsubscribe-status",
+           "status" => status
+         } = obj
+       ) do
+    if status == "ok" do
+      :ok
+    else
+      Logger.error("Unsubscribe failed: #{inspect(obj)}")
+      :close
+    end
+  end
+
+  defp process_message(
+         %{
+           "event" => "reset-status",
+           "status" => status
+         } = obj
+       ) do
+    if status == "ok" do
+      :ok
+    else
+      Logger.error("Resetting failed: #{inspect(obj)}")
       :close
     end
   end
