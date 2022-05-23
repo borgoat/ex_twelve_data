@@ -6,9 +6,18 @@ defmodule ExTwelvedata.RealtimePrices do
   use WebSockex
   require Logger
 
+  @type price :: %{
+
+  }
+
+  @doc """
+  Invoked when a price update is received.
+  """
+  @callback handle_price(price) :: :ok
+
   @endpoint "wss://ws.twelvedata.com/v1/quotes/price"
   @heartbeat_seconds 10
-  @heartbeat_message Jason.encode!(%{"action" => "heartbeat"})
+  @heartbeat_message Jason.encode!(%{action: "heartbeat"})
 
   @spec start_link(String.t()) :: {:error, any} | {:ok, pid}
   def start_link(api_key) do
@@ -29,9 +38,9 @@ defmodule ExTwelvedata.RealtimePrices do
   def subscribe(client, symbols) do
     msg =
       Jason.encode!(%{
-        "action" => "subscribe",
-        "params" => %{
-          "symbols" => Enum.join(symbols, ",")
+        action: "subscribe",
+        params: %{
+          symbols: Enum.join(symbols, ",")
         }
       })
 
@@ -43,9 +52,9 @@ defmodule ExTwelvedata.RealtimePrices do
   def unsubscribe(client, symbols) do
     msg =
       Jason.encode!(%{
-        "action" => "unsubscribe",
-        "params" => %{
-          "symbols" => Enum.join(symbols, ",")
+        action: "unsubscribe",
+        params: %{
+          symbols: Enum.join(symbols, ",")
         }
       })
 
@@ -56,9 +65,7 @@ defmodule ExTwelvedata.RealtimePrices do
   @spec reset(pid) :: {:error, any} | {:ok}
   def reset(client) do
     msg =
-      Jason.encode!(%{
-        "action" => "reset"
-      })
+      Jason.encode!(%{action: "reset"})
 
     Logger.debug("-> Resetting...")
     WebSockex.send_frame(client, {:text, msg})
@@ -77,7 +84,7 @@ defmodule ExTwelvedata.RealtimePrices do
 
   def handle_frame({:text, msg}, state) do
     Logger.debug("<- Received message: #{msg}")
-    {:ok, obj} = Jason.decode(msg)
+    {:ok, obj} = Jason.decode(msg, keys: :atoms)
     res = process_message(obj)
     {res, state}
   end
@@ -89,8 +96,8 @@ defmodule ExTwelvedata.RealtimePrices do
   end
 
   defp process_message(%{
-         "event" => "heartbeat",
-         "status" => status
+         event: "heartbeat",
+         status: status
        }) do
     if status == "ok" do
       :ok
@@ -102,8 +109,8 @@ defmodule ExTwelvedata.RealtimePrices do
 
   defp process_message(
          %{
-           "event" => "subscribe-status",
-           "status" => status
+           event: "subscribe-status",
+           status: status
          } = obj
        ) do
     if status == "ok" do
@@ -116,8 +123,8 @@ defmodule ExTwelvedata.RealtimePrices do
 
   defp process_message(
          %{
-           "event" => "unsubscribe-status",
-           "status" => status
+           event: "unsubscribe-status",
+           status: status
          } = obj
        ) do
     if status == "ok" do
@@ -130,8 +137,8 @@ defmodule ExTwelvedata.RealtimePrices do
 
   defp process_message(
          %{
-           "event" => "reset-status",
-           "status" => status
+           event: "reset-status",
+           status: status
          } = obj
        ) do
     if status == "ok" do
@@ -142,7 +149,7 @@ defmodule ExTwelvedata.RealtimePrices do
     end
   end
 
-  defp process_message(%{"event" => "price"} = obj) do
+  defp process_message(%{event: "price"} = obj) do
     Logger.debug("Price update received: #{inspect(obj)}")
     # TODO callback
     :ok
