@@ -27,7 +27,7 @@ defmodule ExTwelvedata.RealtimePrices do
 
   @spec start_link(String.t()) :: {:error, any} | {:ok, pid}
   def start_link(api_key) do
-    Logger.info("-> Connecting to Twelvedata")
+    Logger.info("~> Connecting to Twelvedata")
 
     WebSockex.start_link(
       @endpoint,
@@ -52,7 +52,7 @@ defmodule ExTwelvedata.RealtimePrices do
         }
       )
 
-    Logger.debug("-> Subscribing to symbols: #{msg}")
+    Logger.debug("~> Subscribing to symbols: #{msg}")
     WebSockex.send_frame(client, {:text, msg})
   end
 
@@ -68,7 +68,7 @@ defmodule ExTwelvedata.RealtimePrices do
         }
       )
 
-    Logger.debug("-> Unsubscribing from symbols: #{msg}")
+    Logger.debug("~> Unsubscribing from symbols: #{msg}")
     WebSockex.send_frame(client, {:text, msg})
   end
 
@@ -77,12 +77,12 @@ defmodule ExTwelvedata.RealtimePrices do
     msg =
       Jason.encode!(%{action: "reset"})
 
-    Logger.debug("-> Resetting...")
+    Logger.debug("~> Resetting...")
     WebSockex.send_frame(client, {:text, msg})
   end
 
   def handle_connect(conn, state) do
-    Logger.info("<- Connected to Twelvedata")
+    Logger.info("<~ Connected to Twelvedata")
     schedule_next_heartbeat()
     super(conn, state)
   end
@@ -93,14 +93,14 @@ defmodule ExTwelvedata.RealtimePrices do
   end
 
   def handle_frame({:text, msg}, state) do
-    Logger.debug("<- Received message: #{msg}")
+    Logger.debug("<~ Received message: #{msg}")
     {:ok, obj} = Jason.decode(msg, keys: :atoms)
     res = process_message(obj)
     {res, state}
   end
 
   def handle_info(:heartbeat, state) do
-    Logger.debug("-> Sending heartbeat")
+    Logger.debug("~> Sending heartbeat")
     schedule_next_heartbeat()
     {:reply, {:text, @heartbeat_message}, state}
   end
