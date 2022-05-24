@@ -7,8 +7,14 @@ defmodule ExTwelvedata.RealtimePrices do
   require Logger
 
   @type price :: %{
-
-  }
+                   price: integer,
+                   currency: String.t,
+                   symbol: String.t,
+                   exchange: String.t,
+                   timestamp: integer,
+                   type: String.t,
+                   day_volume: integer,
+                 }
 
   @doc """
   Invoked when a price update is received.
@@ -37,12 +43,14 @@ defmodule ExTwelvedata.RealtimePrices do
   @spec subscribe(pid, [String.t()]) :: {:error, any} | {:ok}
   def subscribe(client, symbols) do
     msg =
-      Jason.encode!(%{
-        action: "subscribe",
-        params: %{
-          symbols: Enum.join(symbols, ",")
+      Jason.encode!(
+        %{
+          action: "subscribe",
+          params: %{
+            symbols: Enum.join(symbols, ",")
+          }
         }
-      })
+      )
 
     Logger.debug("-> Subscribing to symbols: #{msg}")
     WebSockex.send_frame(client, {:text, msg})
@@ -51,12 +59,14 @@ defmodule ExTwelvedata.RealtimePrices do
   @spec unsubscribe(pid, [String.t()]) :: {:error, any} | {:ok}
   def unsubscribe(client, symbols) do
     msg =
-      Jason.encode!(%{
-        action: "unsubscribe",
-        params: %{
-          symbols: Enum.join(symbols, ",")
+      Jason.encode!(
+        %{
+          action: "unsubscribe",
+          params: %{
+            symbols: Enum.join(symbols, ",")
+          }
         }
-      })
+      )
 
     Logger.debug("-> Unsubscribing from symbols: #{msg}")
     WebSockex.send_frame(client, {:text, msg})
@@ -95,10 +105,12 @@ defmodule ExTwelvedata.RealtimePrices do
     {:reply, {:text, @heartbeat_message}, state}
   end
 
-  defp process_message(%{
-         event: "heartbeat",
-         status: status
-       }) do
+  defp process_message(
+         %{
+           event: "heartbeat",
+           status: status
+         }
+       ) do
     if status == "ok" do
       :ok
     else
