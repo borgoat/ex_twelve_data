@@ -201,13 +201,13 @@ defmodule ExTwelvedata.RealtimePrices do
   end
 
   defp process_message(%{event: "price"} = obj, %{mod: module}) do
-    Logger.debug("Price update received: #{inspect(obj)}")
+    Logger.debug("Price update received: #{inspect obj}")
     apply(module, :handle_price, [obj])
     :ok
   end
 
   defp process_message(obj, _state) do
-    Logger.warning("Received unknown event: #{inspect(obj)}")
+    Logger.warning("Received unknown event: #{inspect obj}")
     :ok
   end
 
