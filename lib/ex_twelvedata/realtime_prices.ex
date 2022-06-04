@@ -29,14 +29,26 @@ defmodule ExTwelvedata.RealtimePrices do
   def start_link(api_key, module) do
     Logger.info("~> Connecting to Twelvedata")
 
+    ssl_options = [
+      verify: :verify_peer,
+      depth: 99,
+      cacertfile: CAStore.file_path(),
+      customize_hostname_check: [
+        match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+      ]
+    ]
+
+    extra_headers = [
+      {"X-TD-APIKEY", api_key}
+    ]
+
     WebSockex.start_link(
       @endpoint,
       __MODULE__,
       # TODO
       %{mod: module},
-      extra_headers: [
-        {"X-TD-APIKEY", api_key}
-      ]
+      ssl_options: ssl_options,
+      extra_headers: extra_headers,
     )
   end
 

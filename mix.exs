@@ -21,6 +21,7 @@ defmodule ExTwelvedata.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:castore, "~> 0.1.0"},
       {:jason, "~> 1.3"},
       {:websockex, "~> 0.4.3"},
       # {:dep_from_hexpm, "~> 0.3.0"},
