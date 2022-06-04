@@ -19,7 +19,7 @@ defmodule ExTwelvedata.RealtimePrices do
   @doc """
   Invoked when a price update is received.
   """
-  @callback handle_price(price) :: :ok
+  @callback handle_price_update(price) :: :ok
 
   @endpoint "wss://ws.twelvedata.com/v1/quotes/price"
   @heartbeat_seconds 10
@@ -202,7 +202,7 @@ defmodule ExTwelvedata.RealtimePrices do
 
   defp process_message(%{event: "price"} = obj, %{mod: module}) do
     Logger.debug("Price update received: #{inspect obj}")
-    apply(module, :handle_price, [obj])
+    apply(module, :handle_price_update, [obj])
     :ok
   end
 
