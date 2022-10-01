@@ -9,14 +9,14 @@ defmodule ExTwelvedata.RealtimePrices do
   require Logger
 
   @type price :: %{
-                   price: integer,
-                   currency: String.t,
-                   symbol: String.t,
-                   exchange: String.t,
-                   timestamp: integer,
-                   type: String.t,
-                   day_volume: integer,
-                 }
+          price: integer,
+          currency: String.t(),
+          symbol: String.t(),
+          exchange: String.t(),
+          timestamp: integer,
+          type: String.t(),
+          day_volume: integer
+        }
 
   @doc """
   Invoked when a price update is received.
@@ -63,14 +63,12 @@ defmodule ExTwelvedata.RealtimePrices do
   @spec subscribe(pid, [String.t()]) :: {:error, any} | {:ok}
   def subscribe(client, symbols) do
     msg =
-      Jason.encode!(
-        %{
-          action: "subscribe",
-          params: %{
-            symbols: Enum.join(symbols, ",")
-          }
+      Jason.encode!(%{
+        action: "subscribe",
+        params: %{
+          symbols: Enum.join(symbols, ",")
         }
-      )
+      })
 
     Logger.debug("~> Subscribing to symbols: #{msg}")
     WebSockex.send_frame(client, {:text, msg})
@@ -84,14 +82,12 @@ defmodule ExTwelvedata.RealtimePrices do
   @spec unsubscribe(pid, [String.t()]) :: {:error, any} | {:ok}
   def unsubscribe(client, symbols) do
     msg =
-      Jason.encode!(
-        %{
-          action: "unsubscribe",
-          params: %{
-            symbols: Enum.join(symbols, ",")
-          }
+      Jason.encode!(%{
+        action: "unsubscribe",
+        params: %{
+          symbols: Enum.join(symbols, ",")
         }
-      )
+      })
 
     Logger.debug("~> Unsubscribing from symbols: #{msg}")
     WebSockex.send_frame(client, {:text, msg})
@@ -102,8 +98,7 @@ defmodule ExTwelvedata.RealtimePrices do
   """
   @spec reset(pid) :: {:error, any} | {:ok}
   def reset(client) do
-    msg =
-      Jason.encode!(%{action: "reset"})
+    msg = Jason.encode!(%{action: "reset"})
 
     Logger.debug("~> Resetting...")
     WebSockex.send_frame(client, {:text, msg})
@@ -122,10 +117,12 @@ defmodule ExTwelvedata.RealtimePrices do
 
   def handle_frame({:text, msg}, state) do
     Logger.debug("<~ Received message: #{msg}")
+
     case Jason.decode(msg, keys: :atoms) do
       {:ok, obj} ->
-        Logger.debug("Processing message: #{inspect obj}")
+        Logger.debug("Processing message: #{inspect(obj)}")
         {process_message(obj, state), state}
+
       {:error, _} ->
         Logger.warning("Failed to parse received message as JSON: #{msg}")
         {:ok, state}
@@ -151,6 +148,7 @@ defmodule ExTwelvedata.RealtimePrices do
     case status do
       "ok" ->
         :ok
+
       _ ->
         Logger.error("Received heartbeat with status: #{status}")
         :close
@@ -165,7 +163,9 @@ defmodule ExTwelvedata.RealtimePrices do
          _state
        ) do
     case status do
-      "ok" -> :ok
+      "ok" ->
+        :ok
+
       _ ->
         Logger.error("Subscribe failed with status: #{status}")
         :close
@@ -180,7 +180,9 @@ defmodule ExTwelvedata.RealtimePrices do
          _state
        ) do
     case status do
-      "ok" -> :ok
+      "ok" ->
+        :ok
+
       _ ->
         Logger.error("Unsubscribe failed with status: #{status}")
         :close
@@ -195,7 +197,9 @@ defmodule ExTwelvedata.RealtimePrices do
          _state
        ) do
     case status do
-      "ok" -> :ok
+      "ok" ->
+        :ok
+
       _ ->
         Logger.error("Reset failed with status: #{status}")
         :close
@@ -203,13 +207,13 @@ defmodule ExTwelvedata.RealtimePrices do
   end
 
   defp process_message(%{event: "price"} = obj, %{mod: module}) do
-    Logger.debug("Price update received: #{inspect obj}")
+    Logger.debug("Price update received: #{inspect(obj)}")
     module.handle_price_update(obj)
     :ok
   end
 
   defp process_message(obj, _state) do
-    Logger.warning("Received unknown event: #{inspect obj}")
+    Logger.warning("Received unknown event: #{inspect(obj)}")
     :ok
   end
 
