@@ -8,28 +8,33 @@ defmodule ExTwelvedata.RealtimePrices do
   use WebSockex
   require Logger
 
-  @type price :: %{
-          price: integer,
-          currency: String.t(),
-          symbol: String.t(),
-          exchange: String.t(),
-          timestamp: integer,
-          type: String.t(),
-          day_volume: integer
-        }
+  defmodule Handler do
+    @type price :: %{
+            price: integer,
+            currency: String.t(),
+            symbol: String.t(),
+            exchange: String.t(),
+            timestamp: integer,
+            type: String.t(),
+            day_volume: integer
+          }
 
-  @doc """
-  Invoked when a price update is received.
-  """
-  @callback handle_price_update(price) :: :ok
+    @doc """
+    Invoked when a price update is received.
+    """
+    @callback handle_price_update(price) :: :ok
+  end
 
   @endpoint "wss://ws.twelvedata.com/v1/quotes/price"
   @heartbeat_seconds 10
   @heartbeat_message Jason.encode!(%{action: "heartbeat"})
 
-  @spec start_link(String.t(), module) :: {:error, any} | {:ok, pid}
-  def start_link(api_key, module) do
+  @spec start_link(api_key: String.t(), handler: Handler) :: {:error, any} | {:ok, pid}
+  def start_link(opts) do
     Logger.info("~> Connecting to Twelvedata")
+
+    api_key = Keyword.get(opts, :api_key)
+    handler = Keyword.get(opts, :handler)
 
     ssl_options = [
       verify: :verify_peer,
@@ -47,8 +52,7 @@ defmodule ExTwelvedata.RealtimePrices do
     WebSockex.start_link(
       @endpoint,
       __MODULE__,
-      # TODO
-      %{mod: module},
+      %{handler: handler},
       ssl_options: ssl_options,
       extra_headers: extra_headers
     )
@@ -206,9 +210,9 @@ defmodule ExTwelvedata.RealtimePrices do
     end
   end
 
-  defp process_message(%{event: "price"} = obj, %{mod: module}) do
+  defp process_message(%{event: "price"} = obj, %{handler: handler}) do
     Logger.debug("Price update received: #{inspect(obj)}")
-    module.handle_price_update(obj)
+    handler.handle_price_update(obj)
     :ok
   end
 

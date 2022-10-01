@@ -12,7 +12,7 @@ defmodule ExTwelvedata.RealtimePricesTest do
   end
 
   defmodule SamplePriceUpdateHandler do
-    @behaviour RealtimePrices
+    @behaviour RealtimePrices.Handler
 
     @impl true
     def handle_price_update(price) do
