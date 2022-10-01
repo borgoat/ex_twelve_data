@@ -1,6 +1,8 @@
 defmodule ExTwelvedata.RealtimePrices do
   @moduledoc """
-  Module to get realtime prices from Twelvedata.
+  WebSocket client to get realtime prices from Twelvedata[^1].
+
+  [^1]: https://twelvedata.com/docs#real-time-price-websocket
   """
 
   use WebSockex
@@ -48,7 +50,7 @@ defmodule ExTwelvedata.RealtimePrices do
       # TODO
       %{mod: module},
       ssl_options: ssl_options,
-      extra_headers: extra_headers,
+      extra_headers: extra_headers
     )
   end
 
@@ -159,7 +161,7 @@ defmodule ExTwelvedata.RealtimePrices do
          %{
            event: "subscribe-status",
            status: status
-         } = obj,
+         },
          _state
        ) do
     case status do
@@ -174,7 +176,7 @@ defmodule ExTwelvedata.RealtimePrices do
          %{
            event: "unsubscribe-status",
            status: status
-         } = obj,
+         },
          _state
        ) do
     case status do
@@ -189,7 +191,7 @@ defmodule ExTwelvedata.RealtimePrices do
          %{
            event: "reset-status",
            status: status
-         } = obj,
+         },
          _state
        ) do
     case status do
@@ -202,7 +204,7 @@ defmodule ExTwelvedata.RealtimePrices do
 
   defp process_message(%{event: "price"} = obj, %{mod: module}) do
     Logger.debug("Price update received: #{inspect obj}")
-    apply(module, :handle_price_update, [obj])
+    module.handle_price_update(obj)
     :ok
   end
 
