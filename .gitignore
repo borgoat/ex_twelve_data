@@ -24,3 +24,7 @@ ex_twelvedata-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# IntelliJ
+*.iml
+

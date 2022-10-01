@@ -1,8 +1,8 @@
 defmodule ExTwelvedataTest do
   use ExUnit.Case
-  doctest ExTwelvedata
+  doctest ExTwelveData
 
   test "greets the world" do
-    assert ExTwelvedata.hello() == :world
+    assert ExTwelveData.hello() == :world
   end
 end

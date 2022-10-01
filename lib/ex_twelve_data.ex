@@ -1,6 +1,6 @@
-defmodule ExTwelvedata do
+defmodule ExTwelveData do
   @moduledoc """
-  Documentation for `ExTwelvedata`.
+  Documentation for `ExTwelveData`.
   """
 
   @doc """
@@ -8,7 +8,7 @@ defmodule ExTwelvedata do
 
   ## Examples
 
-      iex> ExTwelvedata.hello()
+      iex> ExTwelveData.hello()
       :world
 
   """

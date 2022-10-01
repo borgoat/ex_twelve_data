@@ -1,6 +1,6 @@
-defmodule ExTwelvedata.RealtimePrices do
+defmodule ExTwelveData.RealTimePrices do
   @moduledoc """
-  WebSocket client to get realtime prices from Twelvedata[^1].
+  WebSocket client to get real-time prices from Twelve Data[^1].
 
   [^1]: https://twelvedata.com/docs#real-time-price-websocket
   """
@@ -31,7 +31,7 @@ defmodule ExTwelvedata.RealtimePrices do
 
   @spec start_link(api_key: String.t(), handler: Handler) :: {:error, any} | {:ok, pid}
   def start_link(opts) do
-    Logger.info("~> Connecting to Twelvedata")
+    Logger.info("~> Connecting to Twelve Data")
 
     api_key = Keyword.get(opts, :api_key)
     handler = Keyword.get(opts, :handler)
@@ -81,7 +81,7 @@ defmodule ExTwelvedata.RealtimePrices do
   @doc """
   Send a list of symbols that you're no longer interested to.
 
-  Twelvedata will stop sending updates.
+  Twelve Data will stop sending updates.
   """
   @spec unsubscribe(pid, [String.t()]) :: {:error, any} | {:ok}
   def unsubscribe(client, symbols) do
@@ -109,13 +109,13 @@ defmodule ExTwelvedata.RealtimePrices do
   end
 
   def handle_connect(conn, state) do
-    Logger.info("<~ Connected to Twelvedata")
+    Logger.info("<~ Connected to Twelve Data")
     schedule_next_heartbeat()
     super(conn, state)
   end
 
   def handle_disconnect(_connection_status_map, state) do
-    Logger.warning("Disconnected from Twelvedata! Reconnecting...")
+    Logger.warning("Disconnected from Twelve Data! Reconnecting...")
     {:reconnect, state}
   end
 

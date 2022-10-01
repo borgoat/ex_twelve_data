@@ -1,18 +1,18 @@
-defmodule ExTwelvedata.RealtimePricesTest do
+defmodule ExTwelveData.RealtimePricesTest do
   use ExUnit.Case
 
-  alias ExTwelvedata.RealtimePrices
+  alias ExTwelveData.RealTimePrices
 
   @moduletag :capture_log
 
-  doctest RealtimePrices
+  doctest RealTimePrices
 
   test "module exists" do
-    assert is_list(RealtimePrices.module_info())
+    assert is_list(RealTimePrices.module_info())
   end
 
   defmodule SamplePriceUpdateHandler do
-    @behaviour RealtimePrices.Handler
+    @behaviour RealTimePrices.Handler
 
     @impl true
     def handle_price_update(price) do
@@ -21,7 +21,7 @@ defmodule ExTwelvedata.RealtimePricesTest do
   end
 
   test "handle price update" do
-    RealtimePrices.handle_frame(
+    RealTimePrices.handle_frame(
       {:text, ~s({"event": "price"})},
       %{mod: SamplePriceUpdateHandler}
     )
