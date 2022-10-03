@@ -67,7 +67,7 @@ defmodule ExTwelveData.RealTimePrices do
       {"X-TD-APIKEY", api_key}
     ]
 
-    Keyword.merge([ssl_options: ssl_options, extra_headers: extra_headers], opts)
+    Keyword.merge([ssl_options: ssl_options, extra_headers: extra_headers, insecure: false], opts)
   end
 
   @doc """
