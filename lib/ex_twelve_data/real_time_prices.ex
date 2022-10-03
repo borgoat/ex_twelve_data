@@ -25,16 +25,34 @@ defmodule ExTwelveData.RealTimePrices do
     @callback handle_price_update(price) :: :ok
   end
 
+  @type options :: [option]
+
+  @type option ::
+          WebSockex.option()
+          | {:api_key, binary}
+          | {:handler, Handler}
+
   @endpoint "wss://ws.twelvedata.com/v1/quotes/price"
   @heartbeat_seconds 10
   @heartbeat_message Jason.encode!(%{action: "heartbeat"})
 
-  @spec start_link(api_key: String.t(), handler: Handler) :: {:error, any} | {:ok, pid}
+  @spec start_link(options) :: {:error, any} | {:ok, pid}
   def start_link(opts) do
     Logger.info("~> Connecting to Twelve Data")
 
-    api_key = Keyword.get(opts, :api_key)
-    handler = Keyword.get(opts, :handler)
+    handler = Keyword.fetch!(opts, :handler)
+
+    WebSockex.start_link(
+      @endpoint,
+      __MODULE__,
+      %{handler: handler},
+      websockex_opts(opts)
+    )
+  end
+
+  @spec websockex_opts(options) :: options
+  defp websockex_opts(opts) do
+    api_key = Keyword.fetch!(opts, :api_key)
 
     ssl_options = [
       verify: :verify_peer,
@@ -49,14 +67,7 @@ defmodule ExTwelveData.RealTimePrices do
       {"X-TD-APIKEY", api_key}
     ]
 
-    opts = Keyword.merge([ssl_options: ssl_options, extra_headers: extra_headers], opts)
-
-    WebSockex.start_link(
-      @endpoint,
-      __MODULE__,
-      %{handler: handler},
-      opts
-    )
+    Keyword.merge([ssl_options: ssl_options, extra_headers: extra_headers], opts)
   end
 
   @doc """
