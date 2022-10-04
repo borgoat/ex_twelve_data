@@ -23,7 +23,7 @@ defmodule ExTwelveData.RealtimePricesTest do
   test "handle price update" do
     RealTimePrices.handle_frame(
       {:text, ~s({"event": "price"})},
-      %{mod: SamplePriceUpdateHandler}
+      %{handler: SamplePriceUpdateHandler}
     )
   end
 end
