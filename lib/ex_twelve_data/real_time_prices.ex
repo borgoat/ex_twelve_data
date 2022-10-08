@@ -9,6 +9,10 @@ defmodule ExTwelveData.RealTimePrices do
   require Logger
 
   defmodule Handler do
+    @moduledoc """
+    Implement the Handler behaviour to process real-time price updates coming from Twelve Data.
+    """
+
     @type price :: %{
             price: integer,
             currency: String.t(),
@@ -54,6 +58,7 @@ defmodule ExTwelveData.RealTimePrices do
   defp websockex_opts(opts) do
     api_key = Keyword.fetch!(opts, :api_key)
 
+    # TODO CAStore should probably be optional, and users should be able to pass in their own CA certificates file.
     ssl_options = [
       verify: :verify_peer,
       depth: 99,
