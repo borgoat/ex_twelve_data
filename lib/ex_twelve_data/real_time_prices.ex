@@ -1,33 +1,13 @@
 defmodule ExTwelveData.RealTimePrices do
   @moduledoc """
-  WebSocket client to get real-time prices from Twelve Data[^1].
-
-  [^1]: https://twelvedata.com/docs#real-time-price-websocket
+  WebSocket client to get real-time prices from Twelve Data.
   """
 
   use WebSockex
+
   require Logger
 
-  defmodule Handler do
-    @moduledoc """
-    Implement the Handler behaviour to process real-time price updates coming from Twelve Data.
-    """
-
-    @type price :: %{
-            price: integer,
-            currency: String.t(),
-            symbol: String.t(),
-            exchange: String.t(),
-            timestamp: integer,
-            type: String.t(),
-            day_volume: integer
-          }
-
-    @doc """
-    Invoked when a price update is received.
-    """
-    @callback handle_price_update(price) :: :ok
-  end
+  alias ExTwelveData.RealTimePrices.Handler
 
   @type options :: [option]
 
