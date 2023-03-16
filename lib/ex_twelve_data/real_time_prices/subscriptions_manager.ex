@@ -19,8 +19,6 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
   alias ExTwelveData.RealTimePrices.SubscriptionsManager
   alias ExTwelveData.RealTimePrices.SubscriptionsManager.QuotaTracker
 
-  require Logger
-
   @type options :: [option]
 
   @type option ::
@@ -72,9 +70,6 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
 
     new = provider.get_symbols()
 
-    Logger.warning(current)
-    Logger.warning(new)
-
     new_state =
       case QuotaTracker.action(current, new, max_subscriptions) do
         :noop ->
@@ -88,8 +83,6 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
           RealTimePrices.unsubscribe(pid, MapSet.to_list(to_remove))
           %{state | tracked: new_tracked}
       end
-
-    Logger.warning(new_state)
 
     schedule_next_message()
     {:noreply, new_state}
