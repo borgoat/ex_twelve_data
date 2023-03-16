@@ -17,6 +17,7 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
 
   alias ExTwelveData.RealTimePrices
   alias ExTwelveData.RealTimePrices.SubscriptionsManager
+  alias ExTwelveData.RealTimePrices.SubscriptionsManager.QuotaTracker
 
   require Logger
 
@@ -55,6 +56,12 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
     {:noreply, state}
   end
 
+  @doc """
+  Runs every @clock_period_ms to honour the rate limit.
+
+  It checks with the configured {SubscriptionsManager.Provider} behaviour what to add/remove,
+  and sends the corresponding subscribe/unsubscribe message to Twelve Data.
+  """
   def handle_info(:clock, state) do
     %{
       tracked: current,
@@ -65,47 +72,30 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
 
     new = provider.get_symbols()
 
-    tracked =
-      if !MapSet.equal?(current, new) do
-        if is_cleanup_task(max_subscriptions) do
-          remove(pid, current, new)
-        else
-          add(pid, current, new)
-        end
-      else
-        current
+    Logger.warning(current)
+    Logger.warning(new)
+
+    new_state =
+      case QuotaTracker.action(current, new, max_subscriptions) do
+        :noop ->
+          state
+
+        {:add, to_add, new_tracked} ->
+          RealTimePrices.subscribe(pid, MapSet.to_list(to_add))
+          %{state | tracked: new_tracked}
+
+        {:remove, to_remove, new_tracked} ->
+          RealTimePrices.unsubscribe(pid, MapSet.to_list(to_remove))
+          %{state | tracked: new_tracked}
       end
 
+    Logger.warning(new_state)
+
     schedule_next_message()
-    {:noreply, %{state | tracked: tracked}}
+    {:noreply, new_state}
   end
 
   defp schedule_next_message do
     Process.send_after(self(), :clock, @clock_period_ms)
-  end
-
-  defp remove(pid, current, new) do
-    to_remove = MapSet.difference(current, new)
-
-    if Enum.any?(to_remove) do
-      RealTimePrices.unsubscribe(pid, MapSet.to_list(to_remove))
-    end
-
-    MapSet.difference(current, to_remove)
-  end
-
-  defp add(pid, current, new) do
-    to_add = MapSet.difference(new, current)
-
-    if Enum.any?(to_add) do
-      RealTimePrices.subscribe(pid, MapSet.to_list(to_add))
-    end
-
-    MapSet.union(current, to_add)
-  end
-
-  defp is_cleanup_task(max_subscriptions) do
-    # TODO Only if we're approaching time limit, or max subscriptions
-    Enum.random(1..6) == 6
   end
 end
