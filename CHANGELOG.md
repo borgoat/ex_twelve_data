@@ -7,15 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2023-03-16
+
 ### Added
 
 - This Changelog.
 - `RealTimePrices.SubscriptionsManager` to comply with
   [Twelve Data rate limiting](https://support.twelvedata.com/en/articles/5194610-websocket-faq).
-
-### Fixed
-
-- Fixed foldouts in Dutch translation
 
 ## [0.1.1] - 2022-10-11
 
