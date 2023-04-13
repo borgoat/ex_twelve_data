@@ -25,7 +25,8 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
           GenServer.option()
           | {:pid, pid()}
           | {:provider, SubscriptionsManager.Provider}
-          | {:max_subscriptions, integer}
+          | {:max_subscriptions, integer()}
+          | {:symbols_extended, boolean()}
 
   # 1 event / 600ms -> 100 events per minute
   @clock_period_ms 600
@@ -39,11 +40,18 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
     pid = Keyword.fetch!(opts, :pid)
     provider = Keyword.fetch!(opts, :provider)
     max_subscriptions = Keyword.fetch!(opts, :max_subscriptions)
+    symbols_extended = Keyword.get(opts, :symbols_extended, false)
 
     schedule_next_message()
 
     {:ok,
-     %{tracked: MapSet.new(), pid: pid, provider: provider, max_subscriptions: max_subscriptions}}
+     %{
+       tracked: MapSet.new(),
+       pid: pid,
+       provider: provider,
+       max_subscriptions: max_subscriptions,
+       symbols_extended: symbols_extended
+     }}
   end
 
   def handle_call(_msg, _from, state) do
@@ -65,7 +73,8 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
       tracked: current,
       pid: pid,
       provider: provider,
-      max_subscriptions: max_subscriptions
+      max_subscriptions: max_subscriptions,
+      symbols_extended: symbols_extended
     } = state
 
     new = provider.get_symbols()
@@ -76,16 +85,26 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
           state
 
         {:add, to_add, new_tracked} ->
-          RealTimePrices.subscribe(pid, MapSet.to_list(to_add))
+          symbols = to_add |> MapSet.to_list() |> join_symbols_if_needed(symbols_extended)
+          RealTimePrices.subscribe(pid, symbols)
           %{state | tracked: new_tracked}
 
         {:remove, to_remove, new_tracked} ->
-          RealTimePrices.unsubscribe(pid, MapSet.to_list(to_remove))
+          symbols = to_remove |> MapSet.to_list() |> join_symbols_if_needed(symbols_extended)
+          RealTimePrices.unsubscribe(pid, symbols)
           %{state | tracked: new_tracked}
       end
 
     schedule_next_message()
     {:noreply, new_state}
+  end
+
+  defp join_symbols_if_needed(symbols_set, extended) do
+    if extended do
+      symbols_set
+    else
+      Enum.join(symbols_set, ",")
+    end
   end
 
   defp schedule_next_message do

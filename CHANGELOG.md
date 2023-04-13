@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for extended format for symbols.
+
+### Changed
+
+- `subscribe` and `unsubscribe` now pass symbols as is (as string or array of objects).
+  SubscriptionsManager can still handle a list of strings in Elixir,
+  and turn it into a comma-separated string for Twelve Data.
+
 ## [0.2.1] - 2023-03-16
 
-## Fixed
+### Fixed
 
 - Removed some unneeded logs.
 

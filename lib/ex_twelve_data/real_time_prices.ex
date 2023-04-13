@@ -8,6 +8,15 @@ defmodule ExTwelveData.RealTimePrices do
   require Logger
 
   alias ExTwelveData.RealTimePrices.Handler
+  alias ExTwelveData.Symbol
+
+  @typedoc """
+  Symbols passed to subscribe/unsubscribe.
+
+  It can either be an array of objects (extended format),
+  or a comma-delimited string with multiple symbols.
+  """
+  @type symbols_list :: String.t() | [Symbol.t()]
 
   @type options :: [option]
 
@@ -61,13 +70,13 @@ defmodule ExTwelveData.RealTimePrices do
   Subsequent calls will append new symbols to the list.
   See `unsubscribe/2` and `reset/1` to remove
   """
-  @spec subscribe(pid, [String.t()]) :: {:error, any} | {:ok}
+  @spec subscribe(pid, symbols_list()) :: {:error, any} | {:ok}
   def subscribe(client, symbols) do
     msg =
       Jason.encode!(%{
         action: "subscribe",
         params: %{
-          symbols: Enum.join(symbols, ",")
+          symbols: symbols
         }
       })
 
@@ -80,13 +89,13 @@ defmodule ExTwelveData.RealTimePrices do
 
   Twelve Data will stop sending updates.
   """
-  @spec unsubscribe(pid, [String.t()]) :: {:error, any} | {:ok}
+  @spec unsubscribe(pid, symbols_list()) :: {:error, any} | {:ok}
   def unsubscribe(client, symbols) do
     msg =
       Jason.encode!(%{
         action: "unsubscribe",
         params: %{
-          symbols: Enum.join(symbols, ",")
+          symbols: symbols
         }
       })
 
