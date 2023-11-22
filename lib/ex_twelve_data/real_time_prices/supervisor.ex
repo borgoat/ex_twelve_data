@@ -1,4 +1,15 @@
 defmodule ExTwelveData.Supervisor do
+  @moduledoc """
+  Supervisor for the RealTimePrices and SubscriptionsManager processes.
+
+  It starts the RealTimePrices and SubscriptionsManager processes, and restarts them if they crash.
+  This is important since the RealTimePrices client has an implicit state with the Twelve Data connection:
+  the list of symbols that are subscribed to is determined by the sequence of subscribe/unsubscribe messages.
+  If the RealTimePrices process crashes, the state is lost, and the list of subscribed symbols is reset.
+  This supervisor ensures that when the RealTimePrices process crashes,
+  it is restarted with a fresh SubscriptionManager process, which will then have a clean state,
+  and restart the entire flow.
+  """
   use Supervisor
 
   @type options :: [option]
@@ -13,7 +24,7 @@ defmodule ExTwelveData.Supervisor do
   end
 
   def init(opts) do
-    realtime_prices_name = ExTwelveData.RealTimePrices1
+    realtime_prices_name = ExTwelveData.RealTimePrices.Supervised
 
     realtime_prices_options =
       Keyword.merge(
