@@ -9,17 +9,9 @@ defmodule MockHandler do
   end
 end
 
-{:ok, pid} =
-  ExTwelveData.RealTimePrices.start_link(
-    api_key: System.fetch_env!("TWELVE_DATA_API_KEY"),
-    handler: MockHandler
-  )
-
-alias ExTwelveData.RealTimePrices.SubscriptionsManager
-
 defmodule MockProvider do
   alias ExTwelveData.Symbol
-  @behaviour SubscriptionsManager.Provider
+  @behaviour ExTwelveData.RealTimePrices.SubscriptionsManager.Provider
 
   require Logger
 
@@ -47,11 +39,12 @@ defmodule MockProvider do
   end
 end
 
-SubscriptionsManager.start_link(
-  pid: pid,
+ExTwelveData.Supervisor.start_link(
   provider: MockProvider,
   max_subscriptions: 8,
-  symbols_extended: true
+  symbols_extended: true,
+  api_key: System.fetch_env!("TWELVEDATA_APIKEY"),
+  handler: MockHandler
 )
 
 # ["AAPL", "MSFT", "GOOG"],
