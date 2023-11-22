@@ -61,7 +61,10 @@ defmodule ExTwelveData.RealTimePrices do
       {"X-TD-APIKEY", api_key}
     ]
 
-    Keyword.merge([ssl_options: ssl_options, extra_headers: extra_headers, insecure: false], opts)
+    Keyword.merge(
+      [ssl_options: ssl_options, extra_headers: extra_headers, insecure: false],
+      opts
+    )
   end
 
   @doc """
@@ -161,7 +164,7 @@ defmodule ExTwelveData.RealTimePrices do
 
       _ ->
         Logger.error("Received heartbeat with status: #{status}")
-        :close
+        :stop
     end
   end
 
@@ -178,7 +181,7 @@ defmodule ExTwelveData.RealTimePrices do
 
       _ ->
         Logger.error("Subscribe failed with status: #{status}")
-        :close
+        :ok
     end
   end
 
@@ -195,7 +198,7 @@ defmodule ExTwelveData.RealTimePrices do
 
       _ ->
         Logger.error("Unsubscribe failed with status: #{status}")
-        :close
+        :stop
     end
   end
 
@@ -212,7 +215,7 @@ defmodule ExTwelveData.RealTimePrices do
 
       _ ->
         Logger.error("Reset failed with status: #{status}")
-        :close
+        :stop
     end
   end
 
