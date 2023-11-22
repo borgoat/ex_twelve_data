@@ -1,4 +1,8 @@
 defmodule ExTwelveData.Symbol do
+  @moduledoc """
+  Struct to represent a Twelve Data extended symbol.
+  """
+
   @derive Jason.Encoder
   defstruct [
     :exchange,
