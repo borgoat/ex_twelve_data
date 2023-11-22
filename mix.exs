@@ -4,7 +4,7 @@ defmodule ExTwelveData.MixProject do
   def project do
     [
       app: :ex_twelve_data,
-      version: "0.3.0",
+      version: "0.4.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -45,7 +45,7 @@ defmodule ExTwelveData.MixProject do
       {:castore, "~> 0.1.0"},
       {:jason, "~> 1.3"},
       {:websockex, "~> 0.4.3"},
-      {:ex_doc, "~> 0.27", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.30", only: [:dev], runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
