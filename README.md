@@ -56,7 +56,10 @@ ExTwelveData.RealTimePrices.unsubscribe(Your.Name, ["AAPL"])
 ExTwelveData.RealTimePrices.reset(Your.Name)
 ```
 
-The client currently takes care of reconnecting, and sending the heartbeat every 10 seconds.
+The client sends the heartbeat every 10 seconds, and reconnects (with backoff) if the connection drops.
+Twelve Data forgets subscriptions with the connection: use `RealTimePrices.notify_on_reconnect/2`
+to be told when to subscribe again, or let `ExTwelveData.Supervisor` with a
+`ExTwelveData.RealTimePrices.SubscriptionsManager.Provider` resubscribe for you.
 
 ## Installation
 
@@ -66,7 +69,7 @@ by adding `ex_twelve_data` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ex_twelve_data, "~> 0.1.0"}
+    {:ex_twelve_data, "~> 0.4"}
   ]
 end
 ```
@@ -74,6 +77,19 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/ex_twelve_data>.
+
+## Development
+
+The toolchain comes from the Nix flake: run `nix develop`, or `direnv allow` to load it
+automatically (direnv also loads `TWELVEDATA_APIKEY` from a git-ignored `.env` file).
+
+```sh
+mix deps.get
+mix test                     # unit tests
+mix test --only integration  # live API test, needs TWELVEDATA_APIKEY
+mix credo --strict           # currently only flags the two known TODOs
+mix dialyzer
+```
 
 ## Reference
 

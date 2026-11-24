@@ -53,6 +53,18 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager.QuotaTrackerTest do
     assert {:add, [4, 5, 6], [1, 4, 5, 6]} = QuotaTracker.action([1], new, limit)
   end
 
+  test "subscribe up to the limit when there are too many symbols" do
+    new = [1, 2, 3, 4, 5]
+
+    assert {:add, [1, 2, 3], [1, 2, 3]} = QuotaTracker.action([], new, 3)
+    # Full: nothing to remove, so no further (empty) requests.
+    assert :noop = QuotaTracker.action([1, 2, 3], new, 3)
+  end
+
+  test "fill the remaining slots when there are too many symbols" do
+    assert {:add, [2], [1, 2]} = QuotaTracker.action([1], [1, 2, 3, 4], 2)
+  end
+
   test "remove if there's nothing to add" do
     old = [1, 2, 3, 4, 5]
     new = [1, 2, 3]
