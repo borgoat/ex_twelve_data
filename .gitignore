@@ -28,3 +28,15 @@ ex_twelvedata-*.tar
 # IntelliJ
 *.iml
 
+
+# Secrets (TWELVEDATA_APIKEY), loaded by direnv
+.env
+
+# Nix devshell state
+/.nix-mix/
+/.nix-hex/
+/.direnv/
+/result
+
+# ElixirLS
+/.elixir_ls/
