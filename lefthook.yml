@@ -1,0 +1,11 @@
+# Fast checks on the staged files only. The whole gate is `mix ci`, which CI runs.
+pre-commit:
+  commands:
+    format:
+      glob: "*.{ex,exs}"
+      run: mix format --check-formatted {staged_files}
+    credo:
+      glob: "{lib,test}/**/*.{ex,exs}"
+      run: mix credo --strict {staged_files}
+    typos:
+      run: typos --force-exclude {staged_files}

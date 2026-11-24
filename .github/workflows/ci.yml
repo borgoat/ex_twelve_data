@@ -28,6 +28,8 @@ jobs:
       TWELVEDATA_APIKEY: ${{ secrets.TWELVEDATA_APIKEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -39,19 +41,29 @@ jobs:
           key: mix-${{ runner.os }}-${{ hashFiles('flake.lock', 'mix.lock') }}
           restore-keys: mix-${{ runner.os }}-
       - run: mix deps.get
-      - run: mix format --check-formatted
-      # --force: a restored _build would skip (and not warn about) unchanged files.
-      - run: mix compile --warnings-as-errors --force
-      - run: mix credo --strict
-      - run: mix dialyzer
-      - run: mix test
+      # The whole gate, the same command as on a developer's machine (mix.exs, `aliases/0`).
+      - run: mix ci
       - name: mix test --only integration
         if: env.TWELVEDATA_APIKEY != ''
         run: mix test --only integration
 
+  # mix.exs promises this Elixir, so the tests must pass on it. The static checks run once, in `test`.
+  test-min:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: nix develop .#min --command bash -euo pipefail {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
+      - run: mix deps.get
+      - run: mix test
+
   # Releases whatever version mix.exs declares, once: bump it (and CHANGELOG.md) to cut a release.
   release:
-    needs: test
+    needs: [test, test-min]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # Must match the workload identity on hex.pm; the environment only allows the main branch.
@@ -64,6 +76,8 @@ jobs:
       group: release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
       - name: Check for an unreleased version
         id: version

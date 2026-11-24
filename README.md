@@ -85,13 +85,23 @@ automatically (direnv also loads `TWELVEDATA_APIKEY` from a git-ignored `.env` f
 
 ```sh
 mix deps.get
-mix test                     # unit tests
+mix ci                       # the whole gate: run it before opening a pull request
+mix test                     # unit tests only
 mix test --only integration  # live API test, needs TWELVEDATA_APIKEY
-mix credo --strict && mix dialyzer
 ```
 
-CI runs all of the above on every pull request and push to `main`
-(the live test only when the `TWELVEDATA_APIKEY` secret is available).
+`mix ci` (see `aliases/0` in `mix.exs`) is the one definition of "passing", and CI runs exactly it
+on every pull request and push to `main` (plus the live test when the `TWELVEDATA_APIKEY` secret is available):
+
+- the lock file has no unused, retired or vulnerable packages (`mix hex.audit`);
+- the code is formatted and compiles without warnings;
+- Credo (strict, with typespecs required on public functions) and Dialyzer pass;
+- the documentation builds without warnings;
+- the tests pass, also on the oldest Elixir that `mix.exs` allows (the flake's `min` devshell), and cover at least the threshold in `mix.exs`: raise it when you add tests, never lower it;
+- no typos (`typos`), and the workflows pass `actionlint` and `zizmor`.
+
+The devshell also installs a pre-commit hook ([lefthook](https://lefthook.dev), `lefthook.yml`) that runs
+the fast checks on the staged files. Dependabot proposes dependency updates weekly, 7 days after a release.
 
 ### Releasing
 
