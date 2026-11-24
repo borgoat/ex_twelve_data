@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   string symbols are joined by `RealTimePrices` itself.
 - Development environment is a Nix flake devshell (`nix develop` or direnv `use flake`),
   replacing `shell.nix` and lorri.
+- GitHub Actions CI tests every pull request and releases from `main` (Hex, tag and GitHub release)
+  whenever `mix.exs` declares a version that has no tag yet.
 
 ## [0.4.0] - 2023-11-22
 

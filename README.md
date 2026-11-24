@@ -87,9 +87,18 @@ automatically (direnv also loads `TWELVEDATA_APIKEY` from a git-ignored `.env` f
 mix deps.get
 mix test                     # unit tests
 mix test --only integration  # live API test, needs TWELVEDATA_APIKEY
-mix credo --strict           # currently only flags the two known TODOs
-mix dialyzer
+mix credo --strict && mix dialyzer
 ```
+
+CI runs all of the above on every pull request and push to `main`
+(the live test only when the `TWELVEDATA_APIKEY` secret is available).
+
+### Releasing
+
+Bump `version` in `mix.exs`, move the `Unreleased` changelog entries under a new
+`## [x.y.z] - YYYY-MM-DD` heading, and merge to `main`. CI then publishes the package to Hex
+(needs the `HEX_API_KEY` repository secret) and creates the `vx.y.z` tag and GitHub release,
+using that changelog section as release notes.
 
 ## Reference
 
