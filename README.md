@@ -69,7 +69,7 @@ by adding `ex_twelve_data` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ex_twelve_data, "~> 0.4"}
+    {:ex_twelve_data, "~> 0.5"}
   ]
 end
 ```
