@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `subscribe/2` and `unsubscribe/2` accept a list of strings again: it is sent as a
+  comma-delimited string, since Twelve Data rejects arrays of strings with
+  `Cant parse message` ([#3](https://github.com/borgoat/ex_twelve_data/pull/3)).
+- A failed unsubscribe or reset no longer crashes the client with a `WebSockex.BadResponseError`.
+  A failed heartbeat now exits with `{:heartbeat_failed, status}` instead, so the supervisor restarts it.
+- Status events (`ok`, `warning`, `error`) now log the failed symbols and server messages.
+- Prices no longer stop silently after a reconnect: Twelve Data drops subscriptions with the
+  connection, and `SubscriptionsManager` now resubscribes everything when told by the new
+  `RealTimePrices.notify_on_reconnect/2`.
+- Reconnect attempts back off (1, 2, then 3s) instead of looping as fast as possible,
+  and each reconnect no longer starts an additional heartbeat loop.
+- `SubscriptionsManager` no longer sends empty unsubscribe requests (burning the 100 events/minute
+  quota) when the provider returns more symbols than `max_subscriptions`: it subscribes up to the limit.
+
+### Changed
+
+- Requires `castore ~> 1.0` and `websockex ~> 0.5`.
+- `SubscriptionsManager` no longer needs the `:symbols_extended` option (it is ignored):
+  string symbols are joined by `RealTimePrices` itself.
+- Development environment is a Nix flake devshell (`nix develop` or direnv `use flake`),
+  replacing `shell.nix` and lorri.
+
+## [0.4.0] - 2023-11-22
+
+### Added
+
+- `ExTwelveData.Supervisor`, running `RealTimePrices` and `SubscriptionsManager` together.
+
+### Fixed
+
+- A failed subscription (e.g. an unknown symbol) no longer stops the client.
+
 ## [0.3.0] - 2023-04-13
 
 ### Added
@@ -49,6 +83,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `RealTimePrices` client for [Twelve Data WebSocket](https://twelvedata.com/docs#real-time-price-websocket) endpoint.
 
-[unreleased]: https://github.com/borgoat/ex_twelve_data/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/borgoat/ex_twelve_data/compare/v0.4.0...HEAD
 [0.1.1]: https://github.com/borgoat/ex_twelve_data/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/borgoat/ex_twelve_data/releases/tag/v0.1.0

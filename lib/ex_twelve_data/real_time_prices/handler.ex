@@ -4,7 +4,7 @@ defmodule ExTwelveData.RealTimePrices.Handler do
   """
 
   @type price :: %{
-          price: integer,
+          price: number,
           currency: String.t(),
           symbol: String.t(),
           exchange: String.t(),

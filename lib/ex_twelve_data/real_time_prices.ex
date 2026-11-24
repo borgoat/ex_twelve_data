@@ -14,9 +14,10 @@ defmodule ExTwelveData.RealTimePrices do
   Symbols passed to subscribe/unsubscribe.
 
   It can either be an array of objects (extended format),
-  or a comma-delimited string with multiple symbols.
+  a comma-delimited string with multiple symbols,
+  or a list of strings (sent as a comma-delimited string).
   """
-  @type symbols_list :: String.t() | [Symbol.t()]
+  @type symbols_list :: String.t() | [String.t()] | [Symbol.t()]
 
   @type options :: [option]
 
@@ -73,13 +74,13 @@ defmodule ExTwelveData.RealTimePrices do
   Subsequent calls will append new symbols to the list.
   See `unsubscribe/2` and `reset/1` to remove
   """
-  @spec subscribe(pid, symbols_list()) :: {:error, any} | {:ok}
+  @spec subscribe(WebSockex.client(), symbols_list()) :: :ok | {:error, any}
   def subscribe(client, symbols) do
     msg =
       Jason.encode!(%{
         action: "subscribe",
         params: %{
-          symbols: symbols
+          symbols: encode_symbols(symbols)
         }
       })
 
@@ -92,13 +93,13 @@ defmodule ExTwelveData.RealTimePrices do
 
   Twelve Data will stop sending updates.
   """
-  @spec unsubscribe(pid, symbols_list()) :: {:error, any} | {:ok}
+  @spec unsubscribe(WebSockex.client(), symbols_list()) :: :ok | {:error, any}
   def unsubscribe(client, symbols) do
     msg =
       Jason.encode!(%{
         action: "unsubscribe",
         params: %{
-          symbols: symbols
+          symbols: encode_symbols(symbols)
         }
       })
 
@@ -109,7 +110,7 @@ defmodule ExTwelveData.RealTimePrices do
   @doc """
   Reset the subscription to all price updates.
   """
-  @spec reset(pid) :: {:error, any} | {:ok}
+  @spec reset(WebSockex.client()) :: :ok | {:error, any}
   def reset(client) do
     msg = Jason.encode!(%{action: "reset"})
 
@@ -117,14 +118,40 @@ defmodule ExTwelveData.RealTimePrices do
     WebSockex.send_frame(client, {:text, msg})
   end
 
-  def handle_connect(conn, state) do
-    Logger.info("<~ Connected to Twelve Data")
-    schedule_next_heartbeat()
-    super(conn, state)
+  @doc """
+  Send `:reconnected` to `pid` whenever the client reconnects to Twelve Data.
+
+  Twelve Data drops all subscriptions with the connection, so `pid` should subscribe again.
+  `SubscriptionsManager` registers itself this way.
+  """
+  @spec notify_on_reconnect(WebSockex.client(), pid) :: :ok
+  def notify_on_reconnect(client, pid) do
+    WebSockex.cast(client, {:notify_on_reconnect, pid})
   end
 
-  def handle_disconnect(_connection_status_map, state) do
-    Logger.warning("Disconnected from Twelve Data! Reconnecting...")
+  def handle_connect(conn, state) do
+    if state[:connected] do
+      Logger.info("<~ Reconnected to Twelve Data, notifying listeners to resubscribe")
+      Enum.each(Map.get(state, :listeners, []), &send(&1, :reconnected))
+    else
+      Logger.info("<~ Connected to Twelve Data")
+      # The heartbeat loop survives reconnects, so start it only once.
+      schedule_next_heartbeat()
+    end
+
+    super(conn, Map.put(state, :connected, true))
+  end
+
+  def handle_cast({:notify_on_reconnect, pid}, state) do
+    {:ok, Map.update(state, :listeners, [pid], &[pid | &1])}
+  end
+
+  def handle_disconnect(%{attempt_number: attempt}, state) do
+    Logger.warning("Disconnected from Twelve Data! Reconnecting (attempt #{attempt})...")
+
+    # Wait 1, 2, then 3s: never instantly, since Twelve Data may close connections in bursts (and every
+    # reconnect costs a resubscribe), and capped below send_frame's 5s timeout so callers aren't killed.
+    Process.sleep(min(attempt, 3) * 1000)
     {:reconnect, state}
   end
 
@@ -164,59 +191,27 @@ defmodule ExTwelveData.RealTimePrices do
 
       _ ->
         Logger.error("Received heartbeat with status: #{status}")
-        :stop
+
+        # Exit (not reconnect): subscriptions are per connection, so the supervisor must restart from scratch.
+        exit({:heartbeat_failed, status})
     end
   end
 
-  defp process_message(
-         %{
-           event: "subscribe-status",
-           status: status
-         },
-         _state
-       ) do
-    case status do
-      "ok" ->
-        :ok
+  # Twelve Data replies "ok", "warning" (partial success) or "error",
+  # listing rejected symbols in `fails` and parse errors in `messages`.
+  defp process_message(%{event: event, status: status} = obj, _state)
+       when event in ["subscribe-status", "unsubscribe-status", "reset-status"] do
+    fails = Enum.map(obj[:fails] || [], & &1[:symbol])
+    messages = obj[:messages] || []
 
-      _ ->
-        Logger.error("Subscribe failed with status: #{status}")
-        :ok
+    if status != "ok" or fails != [] or messages != [] do
+      Logger.warning(
+        "Received #{event} with status: #{status}, " <>
+          "failed symbols: #{inspect(fails)}, messages: #{inspect(messages)}"
+      )
     end
-  end
 
-  defp process_message(
-         %{
-           event: "unsubscribe-status",
-           status: status
-         },
-         _state
-       ) do
-    case status do
-      "ok" ->
-        :ok
-
-      _ ->
-        Logger.error("Unsubscribe failed with status: #{status}")
-        :stop
-    end
-  end
-
-  defp process_message(
-         %{
-           event: "reset-status",
-           status: status
-         },
-         _state
-       ) do
-    case status do
-      "ok" ->
-        :ok
-
-      _ ->
-        Logger.error("Reset failed with status: #{status}")
-        :stop
-    end
+    :ok
   end
 
   defp process_message(%{event: "price"} = obj, %{handler: handler}) do
@@ -229,6 +224,12 @@ defmodule ExTwelveData.RealTimePrices do
     Logger.warning("Received unknown event: #{inspect(obj)}")
     :ok
   end
+
+  defp encode_symbols(symbols) when is_list(symbols) do
+    if Enum.all?(symbols, &is_binary/1), do: Enum.join(symbols, ","), else: symbols
+  end
+
+  defp encode_symbols(symbols), do: symbols
 
   defp schedule_next_heartbeat do
     Logger.debug("Scheduling next heartbeat in #{@heartbeat_seconds}s...")

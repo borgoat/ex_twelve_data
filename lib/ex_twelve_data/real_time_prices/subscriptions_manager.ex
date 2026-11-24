@@ -4,6 +4,7 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
 
   It avoids hitting the rate limits, and batches subscribe and unsubscribe requests.
   SubscriptionsManager expects a list of symbols, and creates a subscription for **at least** those symbols.
+  If the provider returns more than `max_subscriptions` symbols, only `max_subscriptions` of them are subscribed.
   It is implemented as a GenServer, which schedules a message every 600ms (100 events/minute), to subscribe/unsubscribe.
 
   > ## What do the 100 events per minute limit stand for?
@@ -26,7 +27,6 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
           | {:pid, pid()}
           | {:provider, SubscriptionsManager.Provider}
           | {:max_subscriptions, integer()}
-          | {:symbols_extended, boolean()}
 
   # 1 event / 600ms -> 100 events per minute
   @clock_period_ms 600
@@ -40,8 +40,8 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
     pid = Keyword.fetch!(opts, :pid)
     provider = Keyword.fetch!(opts, :provider)
     max_subscriptions = Keyword.fetch!(opts, :max_subscriptions)
-    symbols_extended = Keyword.get(opts, :symbols_extended, false)
 
+    RealTimePrices.notify_on_reconnect(pid, self())
     schedule_next_message()
 
     {:ok,
@@ -49,8 +49,7 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
        tracked: MapSet.new(),
        pid: pid,
        provider: provider,
-       max_subscriptions: max_subscriptions,
-       symbols_extended: symbols_extended
+       max_subscriptions: max_subscriptions
      }}
   end
 
@@ -73,8 +72,7 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
       tracked: current,
       pid: pid,
       provider: provider,
-      max_subscriptions: max_subscriptions,
-      symbols_extended: symbols_extended
+      max_subscriptions: max_subscriptions
     } = state
 
     new = provider.get_symbols()
@@ -85,13 +83,11 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
           state
 
         {:add, to_add, new_tracked} ->
-          symbols = to_add |> MapSet.to_list() |> join_symbols_if_needed(symbols_extended)
-          RealTimePrices.subscribe(pid, symbols)
+          RealTimePrices.subscribe(pid, MapSet.to_list(to_add))
           %{state | tracked: new_tracked}
 
         {:remove, to_remove, new_tracked} ->
-          symbols = to_remove |> MapSet.to_list() |> join_symbols_if_needed(symbols_extended)
-          RealTimePrices.unsubscribe(pid, symbols)
+          RealTimePrices.unsubscribe(pid, MapSet.to_list(to_remove))
           %{state | tracked: new_tracked}
       end
 
@@ -99,12 +95,9 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
     {:noreply, new_state}
   end
 
-  defp join_symbols_if_needed(symbols_set, extended) do
-    if extended do
-      symbols_set
-    else
-      Enum.join(symbols_set, ",")
-    end
+  # Twelve Data dropped all subscriptions: start over, so the next clock tick resubscribes everything.
+  def handle_info(:reconnected, state) do
+    {:noreply, %{state | tracked: MapSet.new()}}
   end
 
   defp schedule_next_message do
