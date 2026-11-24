@@ -54,8 +54,12 @@ jobs:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Must match the workload identity on hex.pm; the environment only allows the main branch.
+    environment: release
     permissions:
       contents: write
+      # Hex workload identity: mix hex.publish exchanges the job's OIDC token for a short-lived key.
+      id-token: write
     concurrency:
       group: release
     steps:
@@ -76,9 +80,7 @@ jobs:
         if: steps.version.outputs.release
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: |
-          : "${HEX_API_KEY:?HEX_API_KEY secret is not set}"
           mix deps.get
           # Skip if a previous run published but failed to create the GitHub release.
           if mix hex.info ex_twelve_data "$VERSION" > /dev/null 2>&1; then

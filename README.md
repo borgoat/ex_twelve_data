@@ -97,8 +97,11 @@ CI runs all of the above on every pull request and push to `main`
 
 Bump `version` in `mix.exs`, move the `Unreleased` changelog entries under a new
 `## [x.y.z] - YYYY-MM-DD` heading, and merge to `main`. CI then publishes the package to Hex
-(needs the `HEX_API_KEY` repository secret) and creates the `vx.y.z` tag and GitHub release,
-using that changelog section as release notes.
+and creates the `vx.y.z` tag and GitHub release, using that changelog section as release notes.
+
+Publishing uses [Hex workload identity](https://hex.pm/docs/workload-identity), not an API key:
+the package's workload identity on hex.pm trusts repository `borgoat/ex_twelve_data`,
+workflow `ci.yml` and environment `release` (restricted to the `main` branch on GitHub).
 
 ## Reference
 
