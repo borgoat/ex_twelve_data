@@ -29,6 +29,83 @@ defmodule ExTwelveData.RealtimePricesTest do
     )
   end
 
+  defmodule ForwardingHandler do
+    @behaviour RealTimePrices.Handler
+
+    # `handle_frame/2` runs in the test process here.
+    @impl true
+    def handle_price_update(price) do
+      send(self(), {:price, price})
+      :ok
+    end
+  end
+
+  test "documented fields get atom keys, any other field keeps its string key" do
+    msg = ~s({"event":"price","symbol":"AAPL","price":1.5,"brand_new_field":1})
+
+    assert {:ok, _} = RealTimePrices.handle_frame({:text, msg}, %{handler: ForwardingHandler})
+
+    assert_received {:price, price}
+    assert price == %{:event => "price", :symbol => "AAPL", :price => 1.5, "brand_new_field" => 1}
+  end
+
+  test "survives a frame that is not JSON, or an event it does not know" do
+    for msg <- ["not json", ~s({"event":"brand-new-event"})] do
+      assert capture_log(fn ->
+               assert {:ok, %{}} = RealTimePrices.handle_frame({:text, msg}, %{})
+             end) =~ "[warning]"
+    end
+  end
+
+  test "answers the heartbeat tick with a heartbeat frame" do
+    assert {:reply, {:text, msg}, %{}} = RealTimePrices.handle_info(:heartbeat, %{})
+    assert Jason.decode!(msg) == %{"action" => "heartbeat"}
+  end
+
+  describe "requests" do
+    # Stands in for the WebSockex client: accepts one frame, and returns its JSON.
+    defp sent(request) do
+      test = self()
+
+      client =
+        spawn_link(fn ->
+          receive do
+            {:"$websockex_send", from, {:text, msg}} ->
+              GenServer.reply(from, :ok)
+              send(test, {:sent, Jason.decode!(msg)})
+          end
+        end)
+
+      assert :ok = request.(client)
+      assert_receive {:sent, msg}
+      msg
+    end
+
+    # Twelve Data rejects an array of strings with "Cant parse message".
+    test "a list of strings is sent as one comma-delimited string" do
+      assert sent(&RealTimePrices.subscribe(&1, ["AAPL", "BTC/USD"])) ==
+               %{"action" => "subscribe", "params" => %{"symbols" => "AAPL,BTC/USD"}}
+    end
+
+    test "extended symbols are sent as an array of objects" do
+      symbol = %ExTwelveData.Symbol{symbol: "AAPL", exchange: "NASDAQ"}
+
+      assert %{"action" => "unsubscribe", "params" => %{"symbols" => [object]}} =
+               sent(&RealTimePrices.unsubscribe(&1, [symbol]))
+
+      assert %{"symbol" => "AAPL", "exchange" => "NASDAQ"} = object
+    end
+
+    test "a string of symbols is sent as it is" do
+      assert %{"params" => %{"symbols" => "AAPL,MSFT"}} =
+               sent(&RealTimePrices.subscribe(&1, "AAPL,MSFT"))
+    end
+
+    test "reset names no symbols" do
+      assert sent(&RealTimePrices.reset/1) == %{"action" => "reset"}
+    end
+  end
+
   describe "status events" do
     # Payloads as returned by the live API.
     test "logs failed symbols on partial subscribe" do

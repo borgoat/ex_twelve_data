@@ -1,0 +1,15 @@
+# Weekly dependency updates, proposed 7 days after a release (the same wait as `hex: [cooldown:]` in mix.exs).
+version: 2
+updates:
+  - package-ecosystem: mix
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

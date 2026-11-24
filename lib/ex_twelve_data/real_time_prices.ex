@@ -30,6 +30,12 @@ defmodule ExTwelveData.RealTimePrices do
   @heartbeat_seconds 10
   @heartbeat_message Jason.encode!(%{action: "heartbeat"})
 
+  # The fields Twelve Data documents get atom keys. Any other field keeps its string key,
+  # so the server cannot grow the atom table.
+  @fields ~w(event status success fails messages symbol exchange mic_code country type
+             currency currency_base currency_quote timestamp price bid ask day_volume)a
+  @keys Map.new(@fields, &{Atom.to_string(&1), &1})
+
   @spec start_link(options) :: {:error, any} | {:ok, pid}
   def start_link(opts) do
     Logger.info("~> Connecting to Twelve Data")
@@ -129,6 +135,7 @@ defmodule ExTwelveData.RealTimePrices do
     WebSockex.cast(client, {:notify_on_reconnect, pid})
   end
 
+  @impl true
   def handle_connect(conn, state) do
     if state[:connected] do
       Logger.info("<~ Reconnected to Twelve Data, notifying listeners to resubscribe")
@@ -142,10 +149,12 @@ defmodule ExTwelveData.RealTimePrices do
     super(conn, Map.put(state, :connected, true))
   end
 
+  @impl true
   def handle_cast({:notify_on_reconnect, pid}, state) do
     {:ok, Map.update(state, :listeners, [pid], &[pid | &1])}
   end
 
+  @impl true
   def handle_disconnect(%{attempt_number: attempt}, state) do
     Logger.warning("Disconnected from Twelve Data! Reconnecting (attempt #{attempt})...")
 
@@ -155,10 +164,11 @@ defmodule ExTwelveData.RealTimePrices do
     {:reconnect, state}
   end
 
+  @impl true
   def handle_frame({:text, msg}, state) do
     Logger.debug("<~ Received message: #{msg}")
 
-    case Jason.decode(msg, keys: :atoms) do
+    case Jason.decode(msg, keys: &Map.get(@keys, &1, &1)) do
       {:ok, obj} ->
         Logger.debug("Processing message: #{inspect(obj)}")
         {process_message(obj, state), state}
@@ -169,6 +179,7 @@ defmodule ExTwelveData.RealTimePrices do
     end
   end
 
+  @impl true
   def handle_info(:heartbeat, state) do
     # TODO At this stage, we should also schedule a message to close the connection, keep a reference to it,
     #      and cancel it when we receive the heartbeat reply. This prevents situations where the WebSocket connection
@@ -233,6 +244,7 @@ defmodule ExTwelveData.RealTimePrices do
 
   defp schedule_next_heartbeat do
     Logger.debug("Scheduling next heartbeat in #{@heartbeat_seconds}s...")
-    Process.send_after(self(), :heartbeat, @heartbeat_seconds * 1000)
+    _timer = Process.send_after(self(), :heartbeat, @heartbeat_seconds * 1000)
+    :ok
   end
 end

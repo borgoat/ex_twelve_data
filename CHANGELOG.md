@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Requires Elixir `~> 1.17`. The previous `~> 1.13` was never tested; CI now runs the tests on
+  both 1.17 and 1.20.
+- Messages from Twelve Data no longer create atoms at runtime. The documented fields still arrive
+  under atom keys; a field Twelve Data adds later arrives under its string key until a release
+  of this library lists it.
+
+### Fixed
+
+- `SubscriptionsManager` no longer counts a symbol as subscribed (or unsubscribed) when sending
+  the request failed: it sends the request again on the next tick.
+
 ## [0.5.0] - 2026-11-24
 
 ### Fixed

@@ -3,6 +3,11 @@ defmodule ExTwelveData.RealTimePrices.Handler do
   Implement the Handler behaviour to process real-time price updates coming from Twelve Data.
   """
 
+  @typedoc """
+  A price update. Which fields are present depends on the instrument.
+
+  A field that Twelve Data adds after this release arrives under its string key, not an atom.
+  """
   @type price :: %{
           price: number,
           currency: String.t(),

@@ -8,7 +8,7 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager.Provider do
   @doc """
   Invoked by the subscriptions manager.
 
-  Shoud provide the set of Twelve Data symbols to subscribe to at this point in time.
+  Should provide the set of Twelve Data symbols to subscribe to at this point in time.
   """
   @callback get_symbols() :: MapSet.t(String.t())
 end

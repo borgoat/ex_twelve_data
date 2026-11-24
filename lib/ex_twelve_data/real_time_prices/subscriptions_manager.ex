@@ -31,11 +31,12 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
   # 1 event / 600ms -> 100 events per minute
   @clock_period_ms 600
 
-  @spec start_link(options) :: {:error, any} | {:ok, pid}
+  @spec start_link(options) :: GenServer.on_start()
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
   end
 
+  @impl true
   def init(opts) do
     pid = Keyword.fetch!(opts, :pid)
     provider = Keyword.fetch!(opts, :provider)
@@ -53,14 +54,17 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
      }}
   end
 
+  @impl true
   def handle_call(_msg, _from, state) do
     {:reply, :ok, state}
   end
 
+  @impl true
   def handle_cast(_msg, state) do
     {:noreply, state}
   end
 
+  @impl true
   @doc """
   Runs every @clock_period_ms to honour the rate limit.
 
@@ -83,12 +87,10 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
           state
 
         {:add, to_add, new_tracked} ->
-          RealTimePrices.subscribe(pid, MapSet.to_list(to_add))
-          %{state | tracked: new_tracked}
+          track(RealTimePrices.subscribe(pid, MapSet.to_list(to_add)), state, new_tracked)
 
         {:remove, to_remove, new_tracked} ->
-          RealTimePrices.unsubscribe(pid, MapSet.to_list(to_remove))
-          %{state | tracked: new_tracked}
+          track(RealTimePrices.unsubscribe(pid, MapSet.to_list(to_remove)), state, new_tracked)
       end
 
     schedule_next_message()
@@ -99,6 +101,10 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager do
   def handle_info(:reconnected, state) do
     {:noreply, %{state | tracked: MapSet.new()}}
   end
+
+  # A failed send leaves `tracked` as it was, so the next tick sends the same request again.
+  defp track(:ok, state, tracked), do: %{state | tracked: tracked}
+  defp track({:error, _}, state, _tracked), do: state
 
   defp schedule_next_message do
     Process.send_after(self(), :clock, @clock_period_ms)

@@ -3,6 +3,10 @@ defmodule ExTwelveData.RealTimePrices.SubscriptionsManager.QuotaTracker do
   Helpers to decide whether to remove or add items
   """
 
+  @spec action([symbol], [symbol], integer) :: :noop | {:add | :remove, [symbol], [symbol]}
+        when symbol: String.t()
+  @spec action(set, set, integer) :: :noop | {:add | :remove, set, set}
+        when set: MapSet.t(String.t())
   def action(old, new, limit) when is_list(old) and is_list(new) do
     case set_action(MapSet.new(old), MapSet.new(new), limit) do
       :noop -> :noop
