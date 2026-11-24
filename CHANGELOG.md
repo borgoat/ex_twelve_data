@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-25
+
 ### Changed
 
 - Requires Elixir `~> 1.17`. The previous `~> 1.13` was never tested; CI now runs the tests on
@@ -19,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `SubscriptionsManager` no longer counts a symbol as subscribed (or unsubscribed) when sending
   the request failed: it sends the request again on the next tick.
+- The client reconnects when Twelve Data sends nothing for a whole heartbeat interval (10s).
+  A half-open connection used to accept heartbeats forever while no prices arrived
+  ([#7](https://github.com/borgoat/ex_twelve_data/pull/7)).
 
 ## [0.5.0] - 2026-11-24
 
@@ -100,7 +105,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `RealTimePrices` client for [Twelve Data WebSocket](https://twelvedata.com/docs#real-time-price-websocket) endpoint.
 
-[unreleased]: https://github.com/borgoat/ex_twelve_data/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/borgoat/ex_twelve_data/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/borgoat/ex_twelve_data/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/borgoat/ex_twelve_data/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/borgoat/ex_twelve_data/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/borgoat/ex_twelve_data/compare/v0.2.1...v0.3.0
