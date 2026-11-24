@@ -25,6 +25,7 @@
             shellHook = ''
               export MIX_HOME="$PWD/.nix-mix"
               export HEX_HOME="$PWD/.nix-hex"
+              export MIX_ARCHIVES="$MIX_HOME/archives"
               export ERL_AFLAGS="-kernel shell_history enabled"
               mix local.hex --force --if-missing >/dev/null
               mix local.rebar --force --if-missing >/dev/null
