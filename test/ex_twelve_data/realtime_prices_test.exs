@@ -62,6 +62,21 @@ defmodule ExTwelveData.RealtimePricesTest do
     assert Jason.decode!(msg) == %{"action" => "heartbeat"}
   end
 
+  test "closes the connection when the server is silent for a whole heartbeat interval" do
+    assert {:reply, _, state} =
+             RealTimePrices.handle_info(:heartbeat, %{handler: ForwardingHandler})
+
+    # Any frame counts as a reply.
+    assert {:ok, replied} = RealTimePrices.handle_frame({:text, ~s({"event":"price"})}, state)
+    assert {:reply, _, state} = RealTimePrices.handle_info(:heartbeat, replied)
+
+    assert {:close, state} = RealTimePrices.handle_info(:heartbeat, state)
+
+    # The reconnect starts afresh, or the next tick would close it again.
+    assert {:ok, state} = RealTimePrices.handle_connect(nil, state)
+    assert {:reply, _, _} = RealTimePrices.handle_info(:heartbeat, state)
+  end
+
   describe "requests" do
     # Stands in for the WebSockex client: accepts one frame, and returns its JSON.
     defp sent(request) do

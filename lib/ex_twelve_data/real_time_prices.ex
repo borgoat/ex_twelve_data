@@ -146,7 +146,7 @@ defmodule ExTwelveData.RealTimePrices do
       schedule_next_heartbeat()
     end
 
-    super(conn, Map.put(state, :connected, true))
+    super(conn, Map.merge(state, %{connected: true, awaiting_reply: false}))
   end
 
   @impl true
@@ -167,6 +167,8 @@ defmodule ExTwelveData.RealTimePrices do
   @impl true
   def handle_frame({:text, msg}, state) do
     Logger.debug("<~ Received message: #{msg}")
+    # Any frame proves the server is alive, not only the heartbeat reply.
+    state = Map.put(state, :awaiting_reply, false)
 
     case Jason.decode(msg, keys: &Map.get(@keys, &1, &1)) do
       {:ok, obj} ->
@@ -180,13 +182,17 @@ defmodule ExTwelveData.RealTimePrices do
   end
 
   @impl true
+  def handle_info(:heartbeat, %{awaiting_reply: true} = state) do
+    # A half-open connection still accepts frames, so silence is the only sign the server is gone.
+    Logger.warning("No reply from Twelve Data since the last heartbeat, reconnecting...")
+    schedule_next_heartbeat()
+    {:close, state}
+  end
+
   def handle_info(:heartbeat, state) do
-    # TODO At this stage, we should also schedule a message to close the connection, keep a reference to it,
-    #      and cancel it when we receive the heartbeat reply. This prevents situations where the WebSocket connection
-    #      is open, we can send heartbeats, but the server is unresponsive.
     Logger.debug("~> Sending heartbeat")
     schedule_next_heartbeat()
-    {:reply, {:text, @heartbeat_message}, state}
+    {:reply, {:text, @heartbeat_message}, Map.put(state, :awaiting_reply, true)}
   end
 
   defp process_message(
